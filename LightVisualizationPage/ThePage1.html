@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Light visualizations</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #ffffff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			p {
+			    margin: 10px 10px 10px 0px;
+			}
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 10px;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+			}
+			#myInputField {
+			    text-align: left;
+			}
+
+			#mySelect {
+			    margin-bottom: 15px;
+			}
+
+			#egButton {
+					margin-bottom: 15px;
+			}
+
+			table,th {
+					table-layout: fixed
+			    border: 0px solid black;
+					width: 100%;
+					text-align: left;
+					vertical-align: middle;
+			}
+		</style>
+	</head>
+	 <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	 <!-- Libs for making shapes -->
+	 <script src="js/three.js"></script>
+	 <script src="js/controls/OrbitControls.js"></script>
+
+	 <!-- Libs for Tubes. where curves formulas are defined -->
+	 <script src="js/CurveExtras.js"></script>
+	 <!-- Libs for file import -->
+	 <script src="js/libs/stats.min.js"></script>
+	 <script src="js/libs/dat.gui.js"></script>
+	 <!-- Script for translating measurements -->
+	 <script src="js/MeasToProperties.js"></script>
+	 <!-- Script for making tubes matrix (interpolation and matrix itself)-->
+	 <script src="js/MakeTubesMatr.js"></script>
+	 <!-- Script for loading examples-->
+	 <script src="js/jquery-3.2.1.js"></script>
+	 <!-- Script for exporting results-->
+	 <script src="js/OBJExporter.js"></script>
+
+
+	<body onload="checkFileAPI();OpenAcc('InputCont');OpenAcc('OptionsCont');OpenAcc('TubesCont')">
+		<!-- Page Content -->
+		<!-- Sidebar -->
+		<div class="w3-sidebar w3-bar-block w3-border" style="right:0;width:300px" id="mySidebar">
+
+			<div class="w3-bar-item " style="background:#c0c0c0">
+ 				 <div class="w3-display-container"><h4>Menu     </h4></div>
+			</div>
+			<a href="HelpPage.html" class="w3-bar-item w3-button">Go to help page ---></a>
+
+			<button class="w3-button w3-block w3-left-align " onclick="listOpenClose('InputCont')">Input  <i class="fa fa-caret-down"></i>
+  		</button>
+		  <div id="InputCont" class="w3-hide w3-white w3-card-2">
+		    <div id="fLoadPanel" class="w3-container">
+					<p>Use your own mesurement file: 	</p>
+					<p id="myInputField" align="left"> <input id="myInput" type="file" onchange='readFile(this);' align="left" /></p>
+			  </div>
+
+				<div id="egLoadPanel" class="w3-container ">
+					<p>... Or pick one of examples:</p>
+					<select id="mySelect" onchange="readExample();" >
+						<option value="empty">Pick example</option>
+						<option value="R1L1">Room 1, Light 1</option>
+					  <option value="R1L2">Room 1, Light 2</option>
+					  <option value="R2L1">Room 2, Light 1</option>
+					  <option value="R2L2">Room 2, Light 2</option>
+						<option value="R3L1">Room 3, Light 1</option>
+						<option value="R3L2">Room 3, Light 2</option>
+						<option value="Lamp">Irregular Grid Lamp</option>
+						<option value="Diffuse">Irregular Grid Diffuse</option>
+						<option value="Spotlights">Irregular Grid Spotlights</option>
+						<option value="Compar_Dark_Koni">Comparison Dark Konica</option>
+						<option value="Compar_Dark_Meter">Comparison Dark Meter</option>
+						<option value="Compar_Dark_Luxi">Comparison Dark Luxi</option>
+						<option value="Compar_White_Koni">Comparison White Konica</option>
+						<option value="Compar_White_Meter">Comparison White Meter</option>
+						<option value="Compar_White_Luxi">Comparison White Luxi</option>
+					</select>
+					<button id="egButton" class="w3-button w3-white w3-border w3-round" onclick="openDetails()">See example image(s) and data</button>
+				</div>
+				<div class="w3-container w3-border"><p ><button id="outputButton" class="w3-button w3-white w3-border w3-round" onclick="saveProperties()">Save properties (*.csv)</button></p></div>
+			</div>
+
+			<button class="w3-button w3-block w3-left-align " onclick="listOpenClose('OptionsCont')">General <i class="fa fa-caret-down"></i>
+			</button>
+
+			<div id="OptionsCont" class="w3-hide w3-white w3-card-2">
+				<div class="w3-container w3-border">
+					<table style="width:100%">
+					  <tr>
+					    <td style="width:60%">Visualization type: </td>
+					    <td style="width: 40%"><select id="visTypes" onchange="visTypePick();" >
+								<option value="Arrows">Arrows</option>
+								<option value="Ellipsoids">Ellipsoids</option>
+								<option value="Tubes">Tubes</option>
+							</select></td>
+					  </tr>
+					  <tr>
+					    <td>Shapes scale: <span id="rangeValue">0</span> </td>
+					    <td><input type="range" min="-10" max="10" value="0" class="slider" id="myRange" oninput="scaleChange(this.id,this.value);" align="right"/> </td>
+					  </tr>
+						<tr>
+					    <td>Center visualizations </td>
+					    <td><input type="checkbox" id="centerBox" onchange="CenterVis();" checked></td>
+					  </tr>
+						<tr>
+					    <td>Diagonal cube </td>
+					    <td><input type="checkbox" id="diagBox" onchange="DiagCube();"></td>
+					  </tr>
+						<tr>
+					    <td>Show measurement points </td>
+					    <td><input type="checkbox" id="measPoints" onchange="DrawMeasPoints();"></td>
+					  </tr>
+					</table>
+
+				</div>
+			</div>
+
+			<button class="w3-button w3-block w3-left-align " onclick="listOpenClose('TubesCont')">Tubes <i class="fa fa-caret-down"></i>
+			</button>
+			<div id="TubesCont" class="w3-hide w3-white w3-card-2">
+				<div class="w3-container w3-border">
+					<table style="width:100%">
+					  <tr>
+					    <td style="width:60%">Step size: <span id="tubeStepSizeVal">10</span> </td>
+					    <td style="width: 40%"><input type="range" min="1" max="50" value="10" class="slider" id="tubeStepSizeRange" oninput="scaleChange(this.id,this.value)" align="right"/> </td>
+					  </tr>
+						<tr>
+ 						 <td >Number of steps: <span id="tubeStepN">10</span></td>
+ 						 <td ><input type="range" min="3" max="50" value="10" class="slider" id="tubeStepNRange" oninput="scaleChange(this.id,this.value)" align="right"/> </td>
+ 					 </tr>
+					 <tr>
+						 <td >Number of tubes X: <span id="tubesX">5</span></td>
+						 <td><input type="range" min="2" max="15" value="5" class="slider" id="tubesXRange" oninput="scaleChange(this.id,this.value)" align="right"/> </td>
+					 </tr>
+					 <tr>
+						 <td >Number of tubes Y: <span id="tubesY">5</span></td>
+						 <td><input type="range" min="2" max="15" value="5" class="slider" id="tubesYRange" oninput="scaleChange(this.id,this.value)" align="right"/> </td>
+					 </tr>
+					 <tr>
+						 <td >Number of tubes Z: <span id="tubesZ">5</span></td>
+						 <td><input type="range" min="2" max="15" value="5" class="slider" id="tubesZRange" oninput="scaleChange(this.id,this.value)" align="right"/> </td>
+					 </tr>
+					</table>
+
+				</div>
+			</div>
+			<a href="http://tatianakartashova.me" class="w3-bar-item w3-button">Page created by Tatiana Kartashova</a>
+
+
+		</div>
+
+		<!-- Header -->
+		<div class="w3-teal">
+			<div class="w3-container">
+				<h2>Light visualization tool </h2>
+				<div class="w3-display-right"><button class="w3-button w3-teal w3-large" onclick="w3_open()">☰ Menu</button></div>
+				</div>
+		</div>
+		<div class="w3-container w3-border-bottom w3-padding w3-margin-small" style="width:calc(100% - 300px)">
+		    <p id="descr">Welcome to the light visualization page. To get information on how to use the visualization tool, please folow the link to the Help page on the right.</p>
+		</div>
+
+		<!-- The visualization field -->
+		<div class="w3-container ">
+			<div id="container"></div>
+		</div>
+
+
+
+
+<script>///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Menu Functions/////////////////////////////
+function w3_open() {
+    document.getElementById("mySidebar").style.display = "block";
+}
+function w3_close() {
+    document.getElementById("mySidebar").style.display = "none";
+}
+function listOpenClose(elem) {//Wrap-unwrap menus
+    var x = document.getElementById(elem);
+    if (x.className.indexOf("w3-show") == -1) {
+        x.className += " w3-show";
+        x.previousElementSibling.className += " w3-green";
+    } else {
+        x.className = x.className.replace(" w3-show", "");
+        x.previousElementSibling.className =
+        x.previousElementSibling.className.replace(" w3-green", "");
+    }
+}
+
+function OpenAcc(id){//To unwrap all menus on page initialization
+    var y = document.getElementById(id);
+    y.className += " w3-show";
+		y.previousElementSibling.className += " w3-green";
+		document.getElementById("fLoadPanel").style.border = "solid 1px #DDDDDD";
+		document.getElementById("egLoadPanel").style.border = "solid 1px #DDDDDD";
+}
+function loadFile1() {
+		document.getElementById("myInput").click();
+}
+
+function loadExample() {
+    var x = document.getElementById("mySelect").value;
+}
+
+function visTypePick() {
+	//console.log(params.visType);
+	//console.log(document.getElementById("visTypes").value);
+    params.visType = document.getElementById("visTypes").value;
+    updateVis();
+}
+
+function scaleChange(id,val) {
+	//console.log([id,val]);
+	switch (id) {
+			case "myRange": {document.getElementById("rangeValue").innerHTML = val;
+			params.shapesScale = parseInt(val);
+			console.log(params.shapesScale);
+			break;}
+			case "tubeStepSizeRange":  {document.getElementById("tubeStepSizeVal").innerHTML = val;
+			params.stepSize = parseInt(val);
+			break;}
+			case "tubeStepNRange":  {document.getElementById("tubeStepN").innerHTML = val;
+			params.nSteps = parseInt(val);
+			break;}
+			case "tubesXRange":  {document.getElementById("tubesX").innerHTML = val;
+			params.nTubesX = parseInt(val);
+			break;}
+			case "tubesYRange":  {document.getElementById("tubesY").innerHTML = val;
+			params.nTubesY = parseInt(val);
+			break;}
+			case "tubesZRange":  {document.getElementById("tubesZ").innerHTML = val;
+			params.nTubesZ = parseInt(val);
+			break;}
+	}
+//console.log(params);
+	updateVis();
+}
+
+function CenterVis() {
+	params.Centralize_Visualization = document.getElementById("centerBox").checked;
+	updateVis();
+}
+
+function DiagCube() {
+	params.Diagonal_cube = document.getElementById("diagBox").checked;
+	updateVis();
+}
+function DrawMeasPoints() {
+	params.measPointsVisible = document.getElementById("measPoints").checked;
+	updateVis();
+}
+
+function openDetails() {
+	var pagetoopen;
+	if (document.getElementById("mySelect").value=="empty"){
+		//do nothing
+		} else{
+		switch (document.getElementById("mySelect").value) {
+				case "R1L1": pagetoopen = "examples_pages/Room1light1.html"; break;
+				case "R1L2": pagetoopen = "examples_pages/Room1light2.html";  break;
+				case "R2L1": pagetoopen = "examples_pages/Room2light1.html";  break;
+				case "R2L2": pagetoopen = "examples_pages/Room2light2.html"; break;
+				case "R3L1": pagetoopen = "examples_pages/Room3light1.html"; break;
+				case "R3L2": pagetoopen = "examples_pages/Room3light2.html"; break;
+				case "Lamp": pagetoopen = "examples_pages/OldLamp.html"; break;
+				case "Diffuse": pagetoopen = "examples_pages/OldDiffuse.html"; break;
+				case "Spotlights": pagetoopen = "examples_pages/OldSpotlights.html"; break;
+				case "Compar_Dark_Koni": pagetoopen = "examples_pages/Comparison_dark.html"; break;
+				case "Compar_Dark_Meter": pagetoopen = "examples_pages/Comparison_dark.html"; break;
+				case "Compar_Dark_Luxi": pagetoopen = "examples_pages/Comparison_dark.html"; break;
+				case "Compar_White_Koni": pagetoopen = "examples_pages/Comparison_white.html"; break;
+				case "Compar_White_Meter": pagetoopen = "examples_pages/Comparison_white.html"; break;
+				case "Compar_White_Luxi": pagetoopen = "examples_pages/Comparison_white.html"; break;
+		}
+		window.open(pagetoopen);
+	}
+}
+
+function saveProperties() {
+	alert("Warning: Vectors directions are saved with respect to the chosen cube rotation.");
+	let csvContent = "data:text/csv;charset=utf-8,";
+	csvContent += "vectorX, vectorY, vectorZ, mean illuminance, diffuseness, positionX, positionY, positionZ\r\n";
+	shapesProperties.forEach(
+		function(rowArray){
+			rowArray=flatten(rowArray);
+			//for(var i=0; i<3; i++){
+			//	 rowArray[0,0]=Math.round(rowArray[0,0] * 1000) / 1000;
+			//}
+			for(var i=0; i<6; i++){
+				 rowArray[i]=Math.round(rowArray[i] * 1000) / 1000;
+			}
+   		let row = rowArray.join(",");
+   		csvContent += row + "\r\n";
+		});
+
+	var encodedUri = encodeURI(csvContent);
+	window.open(encodedUri);
+}
+
+//https://stackoverflow.com/questions/10865025/merge-flatten-an-array-of-arrays-in-javascript
+function flatten(arr) {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten);
+  }, []);
+}
+
+function displayMinMax(minmax) {
+	document.getElementById("descr").innerHTML = "Ranges of values of displayed measurements. Mean illuminance: min = "+Math.round(minmax[0] * 100) / 100  +", max = " + Math.round(minmax[1] * 100) / 100 + ".<br> Diffuseness: min = " + Math.round(minmax[2] * 100) / 100+ ", max = " + Math.round(minmax[3] * 100) / 100+".";
+}
+
+//console.log(allText);
+////ThreeJS script////////////////////////////////////////////////
+		var container, stats;
+		var camera, scene, renderer;
+		var binormal = new THREE.Vector3();
+		var normal = new THREE.Vector3();
+		var sampleClosedSpline = new THREE.CatmullRomCurve3( [
+			new THREE.Vector3( 0, -4, -4 ),
+			new THREE.Vector3( 0, 4, -4 ),
+			new THREE.Vector3( 0, 14, -4 ),
+			new THREE.Vector3( 0, 4, 4 ),
+			new THREE.Vector3( 0, -4, 4 )
+		] );
+		var radiuses=[2,1,3,5,4,2];
+		var material = new THREE.MeshLambertMaterial( { color: 0xff00ff} );
+		var material1 = new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } );
+		var wireframeMaterial = new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.3, wireframe: true, transparent: true } );
+		var materials = [
+							new THREE.MeshPhongMaterial( { color: 0x00FFFF, shading: THREE.FlatShading,  shininess: 0 } ),
+							new THREE.MeshBasicMaterial( { color: 0x000AAA, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+						];
+		var materialRed = [
+							new THREE.MeshPhongMaterial( { color: 0xFF0000, shading: THREE.FlatShading,  shininess: 0 } ),
+							new THREE.MeshBasicMaterial( { color: 0xAA0000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+						];
+
+		var params = {
+							visType: 'Arrows',
+							scale: 1,
+							extrusionSegments: 5,
+							radiusSegments: 15,
+							closed: false,
+							animationView: false,
+							lookAhead: false,
+							shapesScale: 0,
+							stepSize: 10,
+							nSteps: 10,
+							nTubesX: 5,
+							nTubesY: 5,
+							nTubesZ: 5,
+							Centralize_Visualization: true,
+							Diagonal_cube: false,
+							measPointsVisible:false
+						};
+		visTypes = {
+			Ellipsoids: 'Ellipsoids',
+			Tubes:'Tubes',
+			Arrows:'Arrows'
+		}
+
+//File import////////////////////////////////////////////////////////////////////////
+		var myArray;//Where the resulting data goes
+		var myparams1 = { //Function to load file on a button click in GUI
+				loadFile : function() {
+								document.getElementById("myInput").click();
+				}
+		}
+
+		function checkFileAPI() { //Check that the file loading is supported
+							if (window.File && window.FileReader && window.FileList && window.Blob) {
+									reader = new FileReader();
+									return true;
+							} else {
+									alert('The File APIs are not fully supported by your browser. Fallback required.');
+									return false;
+							}
+		}
+
+		var output = ""; //placeholder for text output
+		var shapesProperties=[];
+		function readFile(filePath) { //Function of reading a file, also runs the drawing of a shape
+							document.getElementById("mySelect").value="empty";
+							document.getElementById("fLoadPanel").style.border = "solid  #00cc55";
+							document.getElementById("egLoadPanel").style.border = "solid 1px #DDDDDD";
+			        if(filePath.files && filePath.files[0]) {
+			            reader.onload = function (e) {
+			                output = e.target.result;
+											myArray = e.target.result.split(/\r\n|\r|\n/g);
+											for(key in myArray)//turn imported file to an array
+													myArray[key] = myArray[key].split(',').map(Number);
+            					updateVis();
+			            };//end onload()
+			            reader.readAsText(filePath.files[0]);
+			        }//end if html5 filelist supports
+			        else { //this is where you could fallback to Java Applet, Flash or similar
+			            return false;
+			        }
+			        return true;
+			    }
+var globalText;
+			function readTextFile(path)
+			{
+			    var rawFile = new XMLHttpRequest();
+			    rawFile.open("GET", path,false);
+			    rawFile.onreadystatechange = function ()
+			    {console.log(rawFile.readyState);
+			        if(rawFile.readyState === 4)
+			        {console.log(rawFile.status);
+			            if(rawFile.status === 200 || rawFile.status == 0)
+			            {
+			                var allText = rawFile.responseText;
+											//console.log(allText);
+			                globalText = allText;
+			            }
+			        }
+			    }
+			    rawFile.send(null);
+			}
+
+
+		function readExample() { //Function of reading a file, also runs the drawing of a shape
+			document.getElementById("egLoadPanel").style.border = "solid #00cc55";
+			document.getElementById("fLoadPanel").style.border = "solid 1px #DDDDDD";
+						if (document.getElementById("mySelect").value=="empty"){
+						//do nothing
+						}else{
+								document.getElementById("myInput").value = "";
+								switch (document.getElementById("mySelect").value) {
+								    case "R1L1": file = "examples_meas/Room1Light1.csv"; break;
+								    case "R1L2": file = "examples_meas/Room1Light2.csv";  break;
+								    case "R2L1": file = "examples_meas/Room2Light1.csv";  break;
+								    case "R2L2": file = "examples_meas/Room2Light2.csv"; break;
+								    case "R3L1": file = "examples_meas/Room3Light1.csv"; break;
+								    case "R3L2": file = "examples_meas/Room3Light2.csv"; break;
+								    case "Lamp": file = "examples_meas/MeasLamp.csv"; break;
+										case "Diffuse": file = "examples_meas/MeasDiffuse.csv"; break;
+										case "Spotlights": file = "examples_meas/MeasSpotlights.csv"; break;
+										case "Compar_Dark_Koni": file = "examples_meas/Black_wall_Konica.csv"; break;
+										case "Compar_Dark_Meter": file = "examples_meas/Black_wall_Meter.csv"; break;
+										case "Compar_Dark_Luxi": file = "examples_meas/Black_wall_LuXi.csv"; break;
+										case "Compar_White_Koni": file = "examples_meas/White_wall_Konica.csv"; break;
+										case "Compar_White_Meter": file = "examples_meas/White_wall_Meter.csv"; break;
+										case "Compar_White_Luxi": file = "examples_meas/White_wall_LuXi.csv"; break;
+								}
+								console.log(file);
+								readTextFile(file);
+							 	//console.log(globalText);
+								myArray =globalText.split('\n');
+								for(key in myArray)//turn imported file to an array
+										myArray[key] = myArray[key].split(',').map(Number);
+								console.log(myArray);
+								updateVis()
+						}
+				    return true;
+				    }
+
+	  function getCol(matrix, col){//function to obtain a column of an array
+						 var column = [];
+						 for(var i=0; i<matrix.length; i++){
+								column.push(matrix[i][col]);
+						 }
+						 return column;
+						}
+
+		function updateVis(){
+			if ( myArray !== undefined ) {
+							parent.remove( group );//deletes the previous tube
+							shapesProperties=[];//cleaning matrix of shapes properties
+							for (i = 0; i < myArray.length; i++) {//Translate measurements to light properties
+									shapesProperties[i]= MeasToProperties([myArray[i][0],myArray[i][1],myArray[i][2],myArray[i][3],myArray[i][4],myArray[i][5]],params.Diagonal_cube).concat([myArray[i][6],myArray[i][7],myArray[i][8]]);
+							}
+
+							//console.log(shapesProperties);
+							var minmax=[Math.min.apply(Math,getCol(shapesProperties,1)), Math.max.apply(Math,getCol(shapesProperties,1)), Math.min.apply(Math,getCol(shapesProperties,2)), Math.max.apply(Math,getCol(shapesProperties,2))] ;
+							displayMinMax(minmax);
+							//console.log(myArray.length);
+
+							rotTarget=new THREE.Vector3( 0, 1, 0 );
+							group = new THREE.Group();
+							if ( params.measPointsVisible== true ) {
+								for (i = 0; i < shapesProperties.length; i++) {
+									var newSphere = new THREE.SphereGeometry(5, 12, 12 );;
+									group1 = THREE.SceneUtils.createMultiMaterialObject( newSphere, materialRed );
+									group1.position.x = myArray[i][6];
+									group1.position.y = myArray[i][7];
+									group1.position.z = myArray[i][8];
+									group.add( group1 );
+								}
+							}
+
+							if ( params.visType== 'Ellipsoids' ) {
+								for (i = 0; i < shapesProperties.length; i++) {
+									var newSphere = new THREE.SphereGeometry(0.1* shapesProperties[i][1], 12, 12 );;
+									newSphere.applyMatrix( new THREE.Matrix4().makeScale( shapesProperties[i][2]*Math.exp(params.shapesScale), shapesProperties[i][2]*Math.exp(params.shapesScale), 1.0*Math.exp(params.shapesScale)) );
+									group1 = THREE.SceneUtils.createMultiMaterialObject( newSphere, materials );
+									group1.position.x = myArray[i][6];
+									group1.position.y = myArray[i][7];
+									group1.position.z = myArray[i][8];
+									rotTarget.set(myArray[i][6]+shapesProperties[i][0][0]*10,myArray[i][7]+shapesProperties[i][0][1]*10,myArray[i][8]+shapesProperties[i][0][2]*10)
+									group1.lookAt(rotTarget);
+									group.add( group1 );
+								}
+							}
+							if (params.visType== 'Arrows') {
+								for (i = 0; i < shapesProperties.length; i++) {
+									var cylHeight=0.5* shapesProperties[i][1];
+									var arrowWidth=5;
+									scale=Math.exp(params.shapesScale);
+									var newArrowShaft = new THREE.CylinderGeometry(arrowWidth*shapesProperties[i][2], arrowWidth*shapesProperties[i][2], cylHeight*scale, 9, 6);
+									newArrowShaft.rotateX( Math.PI / 2 );
+									group1 = THREE.SceneUtils.createMultiMaterialObject( newArrowShaft, materials );
+									group1.position.x = myArray[i][6];
+									group1.position.y = myArray[i][7];
+									group1.position.z = myArray[i][8];
+									var coneHeight=5;
+									var newArrowCone = new THREE.CylinderGeometry(0.1,arrowWidth,coneHeight, 9, 6);
+									newArrowCone.rotateX( Math.PI / 2 );
+									group2 = THREE.SceneUtils.createMultiMaterialObject( newArrowCone, materials );
+									group2.position.x = 0;
+									group2.position.y = 0;
+									group2.position.z = (cylHeight/2)*scale;
+									group1.add( group2 );
+									rotTarget.set(myArray[i][6]+shapesProperties[i][0][0]*10,myArray[i][7]+shapesProperties[i][0][1]*10,myArray[i][8]+shapesProperties[i][0][2]*10)
+									group1.lookAt(rotTarget);
+									//console.log([group1.rotation.x,group1.rotation.y,group1.rotation.z]);
+									group.add( group1 );
+
+								}
+							}
+
+							if (params.visType== 'Tubes')
+							try{
+								var TubesMatr,stepsMatr;
+								[TubesMatr,stepsMatr] = MakeTubesMatr( shapesProperties, params.stepSize, params.nSteps, params.nTubesX, params.nTubesY, params.nTubesZ );
+								 //[nTubes,nSteps, (positionX, positionY, positionZ, vectorXYZ, intensity, diffuseness)]
+								//console.log(stepsMatr);
+								for (i = 0; i < TubesMatr.length; i++) {
+									var pointsList = [];
+									radiuses=[];//Math.min(TubesMatr[i].length,stepsMatr[i]+3)
+									for(var j=0; j<TubesMatr[i].length; j++){
+										 pointsList.push(new THREE.Vector3(TubesMatr[i][j][0], TubesMatr[i][j][1], TubesMatr[i][j][2]));
+										 radiuses.push(Math.exp(params.shapesScale)*10000/(TubesMatr[i][j][4]*TubesMatr[i][j][4]));
+										 //console.log(pointsList);
+									}
+									sampleClosedSpline=new THREE.CatmullRomCurve3(pointsList);
+									sampleClosedSpline.type = 'catmullrom';
+									sampleClosedSpline.closed = false;
+									var extrudePath = sampleClosedSpline;
+									tubeGeometry = new THREE.TubeBufferGeometryVarRad( extrudePath, stepsMatr[i], radiuses, params.radiusSegments, params.closed );
+									group1 = THREE.SceneUtils.createMultiMaterialObject( tubeGeometry, materials );
+									group.add( group1 );
+								}
+							}
+							catch(err) {
+									alert("Something went wrong. Probably your grid is not regular or missing measurements.");
+									console.log(err.message);
+							}
+							if(params.Centralize_Visualization==true){
+									var minmaxXYZ=[[getColumnMin(myArray,6),getColumnMax(myArray,6)], [getColumnMin(myArray,7),getColumnMax(myArray,7)], [getColumnMin(myArray,8),getColumnMax(myArray,8)]];
+									var corrVec=[minmaxXYZ[0][0]+(minmaxXYZ[0][1]-minmaxXYZ[0][0])/2, minmaxXYZ[1][0]+(minmaxXYZ[1][1]-minmaxXYZ[1][0])/2, minmaxXYZ[2][0]+(minmaxXYZ[2][1]-minmaxXYZ[2][0])/2];
+									//console.log(minmaxXYZ);
+									//console.log(corrVec);
+									//console.log(group.position);
+									group.position.x=group.position.x-corrVec[0];
+									group.position.y=group.position.y-corrVec[1];
+									group.position.z=group.position.z-corrVec[2];
+							}
+							parent.add( group );
+							setScale();
+						}
+
+	//								sampleClosedSpline=new THREE.CatmullRomCurve3( [
+	//									new THREE.Vector3( myArray[0][0], myArray[0][1], myArray[0][2]),
+	//									new THREE.Vector3( myArray[1][0], myArray[1][1], myArray[1][2] ),
+	//									new THREE.Vector3( 0, 140, -40 ),
+	//									new THREE.Vector3( 0, 40, 40 ),
+	//									new THREE.Vector3( 0, -40, 40 )
+	//								] );
+	//								sampleClosedSpline.type = 'catmullrom';
+	//								sampleClosedSpline.closed = true;
+	//								addVis();
+		}
+	  /**
+	   * display content using a basic HTML replacement
+	   */
+	  function displayContents(txt) {
+	     //  console.log(txt); //display output in DOM
+	  }
+		function getColumnMin(tableId, columnIndex) {
+		  var min = Infinity;
+		  for (var i = 0; i < tableId.length; i++) {
+		    var value = tableId[i][columnIndex]; // force to integer value
+		    if (value < min)
+		      min = value;
+		  }
+		  return min;
+		}
+		function getColumnMax(tableId, columnIndex) {
+			var min = -Infinity;
+			for (var i = 0; i < tableId.length; i++) {
+				var value = tableId[i][columnIndex]; // force to integer value
+				if (value > min)
+					min = value;
+			}
+			return min;
+		}
+
+		sampleClosedSpline.type = 'catmullrom';
+		sampleClosedSpline.closed = true;
+		// Keep a dictionary of Curve instances
+		var splines = {
+			SampleClosedSpline: sampleClosedSpline
+		};
+		var parent, tubeGeometry, group, group1;
+
+
+		function setScale() {
+			group.scale.set( params.scale, params.scale, params.scale );
+		}
+		function addGeometry( ) {
+			// 3D shape
+			var extrudePath = sampleClosedSpline;
+			tubeGeometry = new THREE.TubeBufferGeometryVarRad( extrudePath, params.extrusionSegments, radiuses, params.radiusSegments, params.closed );
+			group = THREE.SceneUtils.createMultiMaterialObject( tubeGeometry, [ material, wireframeMaterial ] );
+			parent.add( group );
+			setScale();
+		}
+
+
+		init();
+		animate();
+		function init() {
+			container = document.getElementById( 'container' );
+			// camera
+			camera = new THREE.PerspectiveCamera( 50, 0.75*window.innerWidth / window.innerHeight, 0.01, 10000 );
+			camera.position.set( 500, 200, 100 );
+			camera.up.set( 0, 0, 1 );
+			// scene
+			scene = new THREE.Scene();
+			// light
+			var light = new THREE.DirectionalLight( 0xffffff, 0.5 );
+			light.position.set( 1300, 0, 100 );
+			scene.add( light );
+
+			hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.4 );
+			hemiLight.position.set( 0, 1500, 0 );
+			scene.add( hemiLight );
+			// tube
+			parent = new THREE.Object3D();
+			scene.add( parent );
+			addGeometry();
+			// renderer
+			renderer = new THREE.WebGLRenderer( { antialias: true } );
+			renderer.setClearColor( 0xffffff );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( 0.75*window.innerWidth, window.innerHeight );
+			container.appendChild( renderer.domElement );
+			controls = new THREE.OrbitControls( camera, renderer.domElement );
+			// stats
+			stats = new Stats();
+			//container.appendChild( stats.dom );
+			//X axis is red. The Y axis is green. The Z axis is blue
+			axes = new THREE.AxisHelper( 100 );
+			scene.add( axes );
+
+		// event listener
+			window.addEventListener( 'resize', onWindowResize, false );
+		}
+		function onWindowResize() {
+			camera.aspect = 0.75*window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( 0.75*window.innerWidth, window.innerHeight );
+		}
+		//
+		function animate() {
+			setTimeout( function() {
+			        requestAnimationFrame( animate );
+			    }, 1000 / 30 );
+			render();
+			stats.update();
+		}
+		function render() {
+				renderer.render( scene, camera );
+		}
+
+
+	</script>
+
+	</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>Click the button to get every element in the array that has a value of 18 or more.</p>
+
+
+<p id="demo"></p>
+<p id="demo1"></p>
+<script>
+var ages = [32, 33, 16, 40];
+var mA=[[[2,0,0],3,4,0,0,0],[[1,0,0],2,3,1,0,0],[[1,2,0],5,6,0,1,0],[[0.5,0,2],2,6,0,0,1],[[4,2,3],5,6,1,1,0],[[0,0,3],2,6,0,1,1],[[0,2,0],2,3,1,0,1],[[1,5,2],2,6,1,1,1]];
+
+var all,nTubesX=4,nTubesY=4,nTubesZ=5,resultingMatr=[], stepSize=0.01,nSteps=3 ;
+
+
+function MakeTubesMatr( measArray, stepSize, nSteps, nTubesX, nTubesY, nTubesZ ) {
+	var all,minXYZ,maxXYZ,resultingMatr;
+	//resultingMatr [positionXYZ, vectorXYZ, intensity, diffuseness]
+
+	function defineBorders() {//finds minimum and maximum x,y, and z in the measArray
+			minXYZ=[];
+	    maxXYZ=[];
+		for (i = 3; i < 6; i++){
+	        all=[];
+	        for (j = 0; j < measArray.length; j++) {
+	        	all[j]=measArray[j][i];
+	        }
+	        minXYZ[i-3]=all.sort(function(a, b){return a - b})[0];
+	        maxXYZ[i-3]=all.sort(function(a, b){return a - b})[all.length-1];
+	     }
+	    return 1;
+	}
+
+	function checkIfInBorders([x,y,z]){
+
+		if ( minXYZ !== undefined && maxXYZ !== undefined) {
+			if (x>=minXYZ[0] && x<=maxXYZ[0] && y>=minXYZ[1] && y<=maxXYZ[1] && z>=minXYZ[2] && z<=maxXYZ[2]){return true} else {return false}
+		} else {
+			console.log('minXYZ or maxXYZ undefined');
+			return false;
+		}
+	}
+
+	function mysortfunction(a, b) {
+
+		  var x1 = a[3];
+		  var x2 = b[3];
+
+		  var y1 = a[4];
+		  var y2 = b[4];
+
+			var z1 = a[5];
+			var z2 = b[5];
+
+		  if (x1 < x2) return -1;
+		  if (x1 > x2) return 1;
+		  if (y1 < y2) return -1;
+		  if (y1 > y2) return 1;
+			if (z1 < z2) return -1;
+			if (z1 > z2) return 1;
+
+		  return 0;
+	}
+
+	function findSurrounding([x,y,z]){
+		var surrounding=[];//clear surrounding array
+
+    var mA1=mA.sort(mysortfunction);//sort mA
+		//filter neihbours
+		var xyz=[x,y,z];//to make loop for three parameters
+		var minmaxxyz=[]; // to save min and max of parameters;
+		for (var j = 3; j < 6; j++){
+		    for (var i = 0; i < mA1.length; i++) {//go through the list to define neihbouring values
+					if(mA1[i][j]<xyz[j-3] &&mA1[i+1][j]>xyz[j-3]){
+							break;
+					}
+				}
+				if (i<mA1.length){//if inside of the list, filter all elements with two values
+					function checkValue(val) {
+						return val[j] == mA1[i][j];
+					}
+					function checkValue1(val) {
+						return val[j] == mA1[i+1][j];
+					}
+					minmaxxyz[j-3]=[mA1[i][j], mA1[i+1][j]];
+					mA1=mA1.filter(checkValue).concat(mA1.filter(checkValue1));
+				}else if (xyz[j-3]==mA1[i-1][j]) {//if on the border of the list, filter the values of a single value
+					function checkValue(val) {
+						return val[j] == mA1[i-1][j];
+					}
+					minmaxxyz[j-3]=[mA1[i-1][j], mA1[i-1][j]];
+					mA1=mA1.filter(checkValue);
+				}else if (xyz[j-3]==mA1[0][j]) {//if on the border of the list, filter the values of a single value
+					function checkValue(val) {
+						return val[j] == mA1[0][j];
+					}
+					minmaxxyz[j-3]=[mA1[0][j], mA1[0][j]];
+					mA1=mA1.filter(checkValue);
+				}
+		}
+		//sorting
+		var binarMM=[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]];
+		//console.log(binarMM);
+		function checkValue2(val) {
+			return val[3] == minmaxxyz[0][binarMM[i][0]] && val[4] == minmaxxyz[1][binarMM[i][1]] && val[5] == minmaxxyz[2][binarMM[i][2]];
+		}
+		for (var i = 0; i < 8; i++){
+			//console.log(i);
+				surrounding[i]=mA1.filter(checkValue2)[0];
+			}
+
+        return surrounding;
+}
+
+function myInterpolate(surroundingArr,point){//linear interpolation, based on formulas in https://en.wikipedia.org/wiki/Trilinear_interpolation
+			//surroundingArr - 8 points of format [[vector],intnsity,diffuseness, x,y,z]
+			//point - coordinates of point to get interpolated coordinates
+			var xyzd=[];//differences between point and surrounding gridPoints
+			if(surroundingArr[4][3]!=surroundingArr[0][3]){
+				xyzd[0]=(point[0]-surroundingArr[0][3])/(surroundingArr[4][3]-surroundingArr[0][3]);
+			} else {xyzd[0]=0;};
+			if (surroundingArr[2][4]!=surroundingArr[0][4]){
+				xyzd[1]=(point[1]-surroundingArr[0][4])/(surroundingArr[2][4]-surroundingArr[0][4]);
+			}else {xyzd[1]=0;};
+			if(surroundingArr[1][5]!=surroundingArr[0][5]){
+				xyzd[2]=(point[2]-surroundingArr[0][5])/(surroundingArr[1][5]-surroundingArr[0][5]);
+			}else {xyzd[2]=0;};
+
+				//console.log('duh');
+				//console.log(xyzd);
+				//console.log([point[1],surroundingArr[0][4],surroundingArr[2][4]]);
+			function interpolateEssence(paramVal){//interpolation is done for each parameter separately, vector components are calculated separately too
+				//paramVal - array with 8 values of surrounding grid
+				var c00=paramVal[0]*(1-xyzd[0])+paramVal[4]*xyzd[0];
+				var c01=paramVal[1]*(1-xyzd[0])+paramVal[5]*xyzd[0];
+				var c10=paramVal[2]*(1-xyzd[0])+paramVal[6]*xyzd[0];
+				var c11=paramVal[3]*(1-xyzd[0])+paramVal[7]*xyzd[0];
+				//console.log('in');
+				//console.log([c00,c01,c10,c11]);
+				var c0=c00*(1-xyzd[1])+c10*xyzd[1];
+				var c1=c01*(1-xyzd[1])+c11*xyzd[1];
+				//console.log([c0,c1]);
+				var c=c0*(1-xyzd[2])+c1*xyzd[2];
+				//console.log(c);
+				return c;
+			}
+
+			function getCol(matrix, col){
+       var column = [];
+       for(var i=0; i<matrix.length; i++){
+          column.push(matrix[i][col]);
+       }
+       return column;
+    	}
+			//console.log('interpolateEssence([1,1,1,3,2,2,2,4])');
+			//console.log(interpolateEssence([1,1,1,3,2,2,2,4]));
+		var vector=[interpolateEssence(getCol(getCol(surroundingArr,0),0)), interpolateEssence(getCol(getCol(surroundingArr,0),1)), interpolateEssence(getCol(getCol(surroundingArr,0),2))];
+			//console.log(vector);
+		var intensity=interpolateEssence(getCol(surroundingArr,1));
+        var diffuseness=interpolateEssence(getCol(surroundingArr,2));
+
+		return [vector,intensity,diffuseness];//output - array with values of vector, intensity and diffusenes
+}
+
+
+	var allGrid=[];
+			//init the grid matrix
+			for ( var i = 0; i < nTubesX; i++ ) {
+					allGrid[i] = [];
+					for ( var j = 0; j < nTubesY; j++ ) {
+					allGrid[i][j] = [];
+				}
+			}
+
+//HERE THE MAIN ALGORITHM
+console.log('hi-----------------------------------------');
+defineBorders();
+console.log([minXYZ, maxXYZ]);
+	for (i = 0; i < nTubesX; i++){//first making matrix with the grid of points
+		for (j = 0; j < nTubesY; j++){
+			for (k = 0; k < nTubesZ; k++){
+				allGrid[i][j][k]=[minXYZ[0]+(maxXYZ[0]-minXYZ[0])*i/(nTubesX-1), minXYZ[1]+(maxXYZ[1]-minXYZ[1])*j/(nTubesY-1), minXYZ[2]+(maxXYZ[2]-minXYZ[2])*k/(nTubesZ-1)];
+			}
+		}
+	}
+    //console.log('allGrid');
+    //console.log(allGrid);
+	resultingMatr=[];
+	for (i = 0; i < nTubesX; i++){//picking only points on the boders of the grid
+			for (j = 0; j < nTubesY; j++){
+				for (k = 0; k < nTubesZ; k++){
+					if(allGrid[i][j][k][0]==minXYZ[0] || allGrid[i][j][k][0]==maxXYZ[0] || allGrid[i][j][k][1]==minXYZ[1] || allGrid[i][j][k][1]==maxXYZ[1] || allGrid[i][j][k][2]==minXYZ[2] || allGrid[i][j][k][2]==maxXYZ[2]){
+						resultingMatr.push(allGrid[i][j][k]);
+
+					}
+				}
+			}
+		}
+      //  console.log('yee');
+      //  console.log(resultingMatr);
+      //  surrArr=findSurrounding(resultingMatr[1]);
+      //  console.log('yee1');
+      //  console.log(surrArr);
+      //  console.log(resultingMatr[2]);
+      //  temp=resultingMatr[2].concat(myInterpolate(surrArr,resultingMatr[2]));
+
+      //  console.log(temp);
+	for (i = 0; i < resultingMatr.length; i++){//calculating interpolations for the starting points
+			surrArr=findSurrounding(resultingMatr[i]);
+			resultingMatr[i]=resultingMatr[i].concat(myInterpolate(surrArr,resultingMatr[i]));
+
+	}
+	var newPoint=[];
+	for (j=0;j<nSteps;j++){//calculating all steps...
+			for (i = 0; i < resultingMatr.length; i++){//...for all points
+					if (j==0){//on the first step the array is 2-dimensional, thus different referencing
+						newPoint=[resultingMatr[i][0]+resultingMatr[i][3][0]*stepSize, resultingMatr[i][1]+resultingMatr[i][3][1]*stepSize, resultingMatr[i][2]+resultingMatr[i][3][2]*stepSize];//calculating new point as step in vector direction
+					}
+					else{//all other steps
+						newPoint=[resultingMatr[i][j][0]+resultingMatr[i][j][3][0]*stepSize, resultingMatr[i][j][1]+resultingMatr[i][j][3][1]*stepSize, resultingMatr[i][j][2]+resultingMatr[i][j][3][2]*stepSize];//calculating new point as step in vector direction
+					}
+
+					if (checkIfInBorders(newPoint)){//check if the new point is still in the measured volume
+						surrArr=findSurrounding(newPoint);//find surrounding points
+            if (j==0){//if first step
+							newPoint=newPoint.concat(myInterpolate(surrArr,newPoint));//make interpolation
+							resultingMatr[i]=[resultingMatr[i].slice(),newPoint];//add new point to the array
+        		}
+            else{//not first step
+							newPoint=newPoint.concat(myInterpolate(surrArr,newPoint));//make interpolation
+  						resultingMatr[i].push(newPoint);//add new point to the array
+						}
+					}else{//if new point is out of the volume, copy the previous point
+						if (j==0){//if first step
+              resultingMatr[i]=[resultingMatr[i].slice(),resultingMatr[i].slice()];
+							}
+            else{//not first step
+  						resultingMatr[i].push(resultingMatr[i][resultingMatr[i].length-1].slice());
+						}
+					}
+		}
+}
+	console.log('resultingMatr');
+	console.log(resultingMatr);
+	return resultingMatr;
+
+}
+
+
+function myFunction() {
+    document.getElementById("demo").innerHTML = 1;
+}
+
+MakeTubesMatr( mA, stepSize, nSteps, nTubesX, nTubesY, nTubesZ );
+</script>
+
+</body>
+</html>
